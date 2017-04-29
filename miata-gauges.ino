@@ -23,10 +23,13 @@ Adafruit_SSD1325 display(OLED_DC, OLED_RESET, OLED_CS);
 #define LOGO16_GLCD_WIDTH  16 
 
 int ALARM_PIN = 7;
+int NEXT_BTN_PIN = 14;
 
 float currentValue = -5;
 boolean inverted = false;
 int cycles = 1;
+int currentScreen = 0;
+int buttonPressedCycle = 0;
 
 void setup()   {                
   Serial.begin(9600);
@@ -41,21 +44,52 @@ void setup()   {
   display.setTextColor(WHITE);
   display.display();
   
+  //buttons
+  pinMode(NEXT_BTN_PIN, INPUT);
 }
 
 void loop() {
   //Get Data
 
+  //Show Data
   display.clearDisplay();
-  showBoost();
-  currentValue += .021 * cycles;
+  ShowCurrentScreen();
+  display.display();
+  
+  //Listen for Events
+  CheckForButtonPresses();
+  
+  cycles++;
+}
+
+void ShowCurrentScreen() {
+  if (currentScreen == 0)
+  {
+    showBoost();
+  }
+  else if (currentScreen == 1)
+  {
+    showIntakeTemp();
+  }
+  //currentValue += .021 * cycles;
 
   if (currentValue > 30) {
     currentValue = 30;
   }
+}
+
+void CheckForButtonPresses() {
+  int cycleDelay = 5;
+  if (cycles > (buttonPressedCycle + cycleDelay))
+  {
+    if (digitalRead(NEXT_BTN_PIN) > 0) {
+      buttonPressedCycle = cycles;
+      currentScreen += 1;    
+    }
     
-    
-  cycles++;
+    if (currentScreen > 1)
+      currentScreen = 0;
+  }
 }
 
 void showBoost() {
@@ -63,7 +97,7 @@ void showBoost() {
   float value = currentValue;
   float upperLimit = 14.7;
   float lowerLimit = -100;
-  int rangeHigh = 20;
+  int rangeHigh = 25;
   int rangeLow = -20;
   int decimals = 1;
   String unit = "PSI";
@@ -139,7 +173,6 @@ void showData(char label[], float value, int decimals, String unit, float upperL
   //Print Warning Lines
   float lowerX = ((lowerLimit - rangeLow) / (rangeHigh - rangeLow) * gaugeWidth) + gaugeX; 
   float upperX = ((upperLimit - rangeLow) / (rangeHigh - rangeLow) * gaugeWidth) + gaugeX; 
-  
   int start = gaugeY + 1;
   for(int i = 1; i < 5; i++) {
     if (value >= upperLimit) {
@@ -171,7 +204,7 @@ void showData(char label[], float value, int decimals, String unit, float upperL
   display.setTextSize(1);
   display.print(unit);
   
-  display.display();
+
 }
 
 void setCursorForLabel(char label[], int fontSize) {
