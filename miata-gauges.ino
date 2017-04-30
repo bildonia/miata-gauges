@@ -66,7 +66,8 @@ const unsigned char PROGMEM SPLASH_SCREEN [] = {
 
 int ALARM_PIN = 7;
 int NEXT_BTN_PIN = 14;
-int MUTE_BTN_PIN = 14;
+int MUTE_BTN_PIN = 15;
+int ALARM_LED_PIN = 16;
 
 float currentValue = 0;
 boolean inverted = false;
@@ -90,6 +91,10 @@ void setup()   {
   
   //Buttons
   pinMode(NEXT_BTN_PIN, INPUT);
+  pinMode(MUTE_BTN_PIN, INPUT);
+  
+  //LEDs
+  pinMode(ALARM_LED_PIN, OUTPUT);
   
   //Splashscreen
   display.drawBitmap(0, 13, SPLASH_SCREEN, 128, 36, WHITE);
@@ -359,11 +364,13 @@ void enableAlarm(void) {
  
   if (cycles % 12 == 0) {
     display.invertDisplay(false);
+    digitalWrite(ALARM_LED_PIN, LOW);
     noTone(ALARM_PIN);
   }
   else if (cycles % 12 == 6 && !isMuted){
     display.invertDisplay(true);
-   // tone(ALARM_PIN, 4800);
+    digitalWrite(ALARM_LED_PIN, HIGH);
+    // tone(ALARM_PIN, 4800);
   }
 }
 
