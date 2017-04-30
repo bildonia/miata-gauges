@@ -200,7 +200,7 @@ void ShowCurrentScreen() {
 }
 
 void CheckForButtonPresses() {
-  int cycleDelay = 5;
+  int cycleDelay = 12;
   if (cycles > (buttonPressedCycle + cycleDelay))
   {
     if (digitalRead(NEXT_BTN_PIN) > 0) {
@@ -294,7 +294,6 @@ void showBoost() {
   String unit = "PSI";
   
   showFullScreenData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
-  display.display();
   
   if (value >= upperLimit || value <= lowerLimit)
     enableAlarm();
@@ -313,7 +312,6 @@ void showIntakeTemp() {
   String unit = "F";
   
   showFullScreenData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
-  display.display();
   
   if (value >= upperLimit || value <= lowerLimit)
     enableAlarm();
@@ -332,7 +330,6 @@ void showCoolantTemp() {
   String unit = "F";
   
   showFullScreenData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
-  display.display();
   
   if (value >= upperLimit || value <= lowerLimit)
     enableAlarm();
@@ -351,7 +348,6 @@ void showExhaustTemp() {
   String unit = "F";
   
   showFullScreenData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
-  display.display();
   
   if (value >= upperLimit || value <= lowerLimit)
     enableAlarm();
@@ -361,13 +357,13 @@ void showExhaustTemp() {
 
 void enableAlarm(void) {
  
-  if (cycles % 6 == 0) {
+  if (cycles % 12 == 0) {
     display.invertDisplay(false);
     noTone(ALARM_PIN);
   }
-  else if (cycles % 6 == 3 && !isMuted){
+  else if (cycles % 12 == 6 && !isMuted){
     display.invertDisplay(true);
-    //tone(ALARM_PIN, 1640);
+   // tone(ALARM_PIN, 4800);
   }
 }
 
@@ -444,6 +440,10 @@ void showFullScreenData(char label[], float value, int decimals, String unit, fl
   
   //Print Unit
   display.setTextSize(1);
+  if (unit == "F") {
+    display.drawCircle(display.getCursorX() + 2, 4, 2, WHITE);
+    display.setCursor(display.getCursorX() + 7, 2);
+  }
   display.print(unit);
 }
 
