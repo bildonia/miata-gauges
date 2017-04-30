@@ -118,17 +118,23 @@ void ShowCurrentScreen() {
       showIntakeTemp();
       break;
     case 2:
+      showExhaustTemp();
+      break;
+    case 3:
+      showCoolantTemp();
+      break;
+    case 4:
       showAll();
       break;
     default:
       showBoost(); 
   }
   
-  //currentValue += .021 * cycles;
+ // currentValue += .1;
 
-  if (currentValue > 30) {
-    currentValue = 30;
-  }
+//  if (currentValue > 30) {
+//    currentValue = 30;
+//  }
 }
 
 void CheckForButtonPresses() {
@@ -141,7 +147,7 @@ void CheckForButtonPresses() {
       disableAlarm();
     }
     
-    if (currentScreen > 2)
+    if (currentScreen > 4)
       currentScreen = 0;
   }
 }
@@ -235,6 +241,44 @@ void showIntakeTemp() {
   float upperLimit = 125;
   float lowerLimit = 32;
   int rangeHigh = 150;
+  int rangeLow = 0;
+  int decimals = 1;
+  String unit = "F";
+  
+  showFullScreenData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
+  display.display();
+  
+  if (value >= upperLimit || value <= lowerLimit)
+    enableAlarm();
+  else
+    disableAlarm();
+}
+
+void showCoolantTemp() {
+  char label[ ] = "COOLANT";
+  float value = currentValue;
+  float upperLimit = 240;
+  float lowerLimit = 10;
+  int rangeHigh = 250;
+  int rangeLow = 0;
+  int decimals = 1;
+  String unit = "F";
+  
+  showFullScreenData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
+  display.display();
+  
+  if (value >= upperLimit || value <= lowerLimit)
+    enableAlarm();
+  else
+    disableAlarm();
+}
+
+void showExhaustTemp() {
+  char label[ ] = "EXHAUST";
+  float value = currentValue;
+  float upperLimit = 1100;
+  float lowerLimit = 0;
+  int rangeHigh = 1200;
   int rangeLow = 0;
   int decimals = 1;
   String unit = "F";
