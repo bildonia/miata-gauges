@@ -66,11 +66,13 @@ const unsigned char PROGMEM SPLASH_SCREEN [] = {
 
 int ALARM_PIN = 7;
 int NEXT_BTN_PIN = 14;
+int MUTE_BTN_PIN = 14;
 
 float currentValue = 0;
 boolean inverted = false;
+boolean isMuted = false;
 int cycles = 1;
-int currentScreen = 0;
+int currentScreen = 2;
 int buttonPressedCycle = 0;
 
 void setup()   {                
@@ -101,12 +103,72 @@ void loop() {
   //Show Data
   display.clearDisplay();
   ShowCurrentScreen();
+  
+  if (isMuted)
+    drawMuteIcon();
   display.display();
   
   //Listen for Events
   CheckForButtonPresses();
   
   cycles++;
+}
+
+void drawMuteIcon() {
+  int startX = 115;
+  int startY = 52; 
+  display.drawPixel(startX + 5, startY, WHITE);
+  display.drawPixel(startX + 4, startY + 1, WHITE);
+  display.drawPixel(startX + 5, startY + 1, WHITE);
+  display.drawPixel(startX + 3, startY + 2, WHITE);
+  display.drawPixel(startX + 4, startY + 2, WHITE);
+  display.drawPixel(startX + 5, startY + 2, WHITE);
+  display.drawPixel(startX, startY + 3, WHITE);
+  display.drawPixel(startX + 1, startY + 3, WHITE);
+  display.drawPixel(startX + 2, startY + 3, WHITE);
+  display.drawPixel(startX + 3, startY + 3, WHITE);
+  display.drawPixel(startX + 4, startY + 3, WHITE);
+  display.drawPixel(startX + 5, startY + 3, WHITE);
+  
+  display.drawPixel(startX, startY + 4, WHITE);
+  display.drawPixel(startX + 1, startY + 4, WHITE);
+  display.drawPixel(startX + 2, startY + 4, WHITE);
+  display.drawPixel(startX + 3, startY + 4, WHITE);
+  display.drawPixel(startX + 4, startY + 4, WHITE);
+  display.drawPixel(startX + 5, startY + 4, WHITE);
+  
+  display.drawPixel(startX, startY + 5, WHITE);
+  display.drawPixel(startX + 1, startY + 5, WHITE);
+  display.drawPixel(startX + 2, startY + 5, WHITE);
+  display.drawPixel(startX + 3, startY + 5, WHITE);
+  display.drawPixel(startX + 4, startY + 5, WHITE);
+  display.drawPixel(startX + 5, startY + 5, WHITE);
+  
+  display.drawPixel(startX, startY + 6, WHITE);
+  display.drawPixel(startX + 1, startY + 6, WHITE);
+  display.drawPixel(startX + 2, startY + 6, WHITE);
+  display.drawPixel(startX + 3, startY + 6, WHITE);
+  display.drawPixel(startX + 4, startY + 6, WHITE);
+  display.drawPixel(startX + 5, startY + 6, WHITE);
+  
+  display.drawPixel(startX + 3, startY + 7, WHITE);
+  display.drawPixel(startX + 4, startY + 7, WHITE);
+  display.drawPixel(startX + 5, startY + 7, WHITE);
+  
+  display.drawPixel(startX + 4, startY + 8, WHITE);
+  display.drawPixel(startX + 5, startY + 8, WHITE);
+  
+  display.drawPixel(startX + 5, startY + 9, WHITE);
+  
+  display.drawPixel(startX + 7, startY + 3, WHITE);
+  display.drawPixel(startX + 11, startY + 3, WHITE);
+  display.drawPixel(startX + 8, startY + 4, WHITE);
+  display.drawPixel(startX + 10, startY + 4, WHITE);
+  display.drawPixel(startX + 9, startY + 5, WHITE);
+  display.drawPixel(startX + 8, startY + 6, WHITE);
+  display.drawPixel(startX + 10, startY + 6, WHITE);
+  display.drawPixel(startX + 7, startY + 7, WHITE);
+  display.drawPixel(startX + 11, startY + 7, WHITE);
 }
 
 void ShowCurrentScreen() {
@@ -145,6 +207,11 @@ void CheckForButtonPresses() {
       buttonPressedCycle = cycles;
       currentScreen += 1;    
       disableAlarm();
+    }
+    
+    if (digitalRead(MUTE_BTN_PIN) > 0) {
+       buttonPressedCycle = cycles;
+       isMuted = !isMuted;
     }
     
     if (currentScreen > 4)
@@ -298,7 +365,7 @@ void enableAlarm(void) {
     display.invertDisplay(false);
     noTone(ALARM_PIN);
   }
-  else if (cycles % 6 == 3){
+  else if (cycles % 6 == 3 && !isMuted){
     display.invertDisplay(true);
     //tone(ALARM_PIN, 1640);
   }
@@ -390,37 +457,4 @@ void printLargeValue(float value, int decimals) {
   int x = (128 - (String(value, decimals).length() * 12)) / 2;
   display.setCursor(x, 2);
   display.print(value, decimals);
-}
-
-void setCursorForValue(float value, int fontSize) {
-  int x = 0;
-  int y = 5;
-  
-  if (fontSize == 3)
-  {
-      if (value <= -100 || value >= 1000)
-        x = 0;
-      else if (value <= -10 || value >= 100)
-        x = 10;
-      else if (value >= 10)
-        x = 20;
-      else if (value < 0)
-        x = 15;
-      else
-        x = 25;
-  }
-  else
-  {
-      if (value <= -100 || value >= 1000)
-        x = 27;
-      else if (value <= -10 || value >= 100)
-        x = 35;
-      else if (value >= 10 || value < 0)
-        x = 43;
-      else
-        x = 50; 
-  }
-
-    
-  display.setCursor(x, y);
 }
