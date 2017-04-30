@@ -67,7 +67,7 @@ const unsigned char PROGMEM SPLASH_SCREEN [] = {
 int ALARM_PIN = 7;
 int NEXT_BTN_PIN = 14;
 
-float currentValue = -5;
+float currentValue = 0;
 boolean inverted = false;
 int cycles = 1;
 int currentScreen = 0;
@@ -322,7 +322,21 @@ void showFullScreenData(char label[], float value, int decimals, String unit, fl
   display.setCursor(0, gaugeLabelY);
   display.setTextSize(1);
   display.print(rangeLow);
-  display.setCursor(110, gaugeLabelY);
+  switch(String(rangeHigh).length())
+  {
+    case 1:
+    case 2:
+      display.setCursor(116, gaugeLabelY);
+      break;
+    case 3:
+      display.setCursor(110, gaugeLabelY);
+      break;
+    case 4:
+      display.setCursor(104, gaugeLabelY);
+      break;
+    default:
+      display.setCursor(98, gaugeLabelY);
+  }
   display.print(rangeHigh);
     
   //Print Guage
@@ -337,6 +351,9 @@ void showFullScreenData(char label[], float value, int decimals, String unit, fl
   float upperX = ((upperLimit - rangeLow) / (rangeHigh - rangeLow) * gaugeWidth) + gaugeX; 
   int start = gaugeY + 1;
   for(int i = 1; i < 5; i++) {
+    if (lowerX == gaugeX || upperX == gaugeX + gaugeWidth)
+      continue;
+    
     if (value >= upperLimit) {
       display.drawLine(upperX, start, upperX, start + 2, BLACK);
       display.drawLine(lowerX, start, lowerX, start + 2, BLACK);
@@ -353,25 +370,26 @@ void showFullScreenData(char label[], float value, int decimals, String unit, fl
     start += 5;
   }
   
-  //Print Label
+  //Print Label/Value
   display.setTextSize(2);
-  display.setCursor(35, 48);
-  display.print(label);
-  
-  //Print Value
-  setCursorForValue(value, 2);
-  display.print(value, decimals);
+  printLargeLabel(label);
+  printLargeValue(value, decimals);
   
   //Print Unit
   display.setTextSize(1);
   display.print(unit);
-  
-
 }
 
-void setCursorForLabel(char label[], int fontSize) {
-  int x = (7 - strlen(label)) * 5;
-  display.setCursor(x, 5);
+void printLargeLabel(String label) {
+  int x = (128 - (label.length() * 12)) / 2;
+  display.setCursor(x, 48);
+  display.print(label);
+}
+
+void printLargeValue(float value, int decimals) {
+  int x = (128 - (String(value, decimals).length() * 12)) / 2;
+  display.setCursor(x, 2);
+  display.print(value, decimals);
 }
 
 void setCursorForValue(float value, int fontSize) {
