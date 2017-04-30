@@ -28,7 +28,7 @@ int NEXT_BTN_PIN = 14;
 float currentValue = -5;
 boolean inverted = false;
 int cycles = 1;
-int currentScreen = 0;
+int currentScreen = 2;
 int buttonPressedCycle = 0;
 
 void setup()   {                
@@ -63,14 +63,20 @@ void loop() {
 }
 
 void ShowCurrentScreen() {
-  if (currentScreen == 0)
-  {
-    showBoost();
+  switch(currentScreen) {
+    case 0:
+      showBoost();
+      break;
+    case 1:
+      showIntakeTemp();
+      break;
+    case 2:
+      showAll();
+      break;
+    default:
+      showBoost(); 
   }
-  else if (currentScreen == 1)
-  {
-    showIntakeTemp();
-  }
+  
   //currentValue += .021 * cycles;
 
   if (currentValue > 30) {
@@ -85,11 +91,76 @@ void CheckForButtonPresses() {
     if (digitalRead(NEXT_BTN_PIN) > 0) {
       buttonPressedCycle = cycles;
       currentScreen += 1;    
+      disableAlarm();
     }
     
-    if (currentScreen > 1)
+    if (currentScreen > 2)
       currentScreen = 0;
   }
+}
+
+void showAll() {
+  display.drawRect(0, 0, 128, 64, 1);
+  
+  display.setTextSize(1);
+  
+  drawEighth("CLT", 0, 0, 0, 0);
+  display.drawLine(32, 0, 32, 32, WHITE);
+  
+  drawEighth("IAT", 22, 0, 32, 0);
+  display.drawLine(64, 0, 64, 32, WHITE);
+  
+  drawEighth("EGT", 1700, 0, 64, 0);
+  display.drawLine(96, 0, 96, 32, WHITE);
+  
+  drawEighth("AFR", 12.2, 1, 96, 0);
+  display.drawLine(0, 32, 128, 32, WHITE);
+     
+  drawBooleanEighth("WUE", false, 0, 32);
+  drawBooleanEighth("LC", true, 32, 32);
+  drawBooleanEighth("A", true, 64, 32);
+}
+
+void drawEighth(String label, float value, int decimals, int startX, int startY) {
+  
+  switch(String(value, decimals).length())
+  {
+    case 2:
+      display.setCursor(startX + 12, startY + 8);
+      break;
+    case 3:
+      display.setCursor(startX + 8, startY + 8);
+      break;
+    case 4:
+      display.setCursor(startX + 5, startY + 8);
+      break;
+    default:
+      display.setCursor(startX + 8, startY + 8);
+  }
+  display.print(value, decimals);
+  display.setCursor(startX + 8, startY + 18);
+  display.print(label);
+}
+
+void drawBooleanEighth(String label, boolean value, int startX, int startY) {
+  int circleX = startX + 16;
+  int circleY = startY + 11;
+  display.drawCircle(circleX, circleY, 5, WHITE);
+  if (value) 
+    display.fillCircle(circleX, circleY, 3, WHITE);
+
+  switch(label.length())
+  {
+    case 1:
+      display.setCursor(circleX - 2, circleY + 9);
+      break;
+    case 2:
+      display.setCursor(circleX - 5, circleY + 9);
+      break;
+    default:
+      display.setCursor(circleX - 8, circleY + 9);
+  }
+  display.print(label);
 }
 
 void showBoost() {
@@ -102,7 +173,7 @@ void showBoost() {
   int decimals = 1;
   String unit = "PSI";
   
-  showData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
+  showFullScreenData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
   display.display();
   
   if (value >= upperLimit || value <= lowerLimit)
@@ -121,7 +192,7 @@ void showIntakeTemp() {
   int decimals = 1;
   String unit = "F";
   
-  showData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
+  showFullScreenData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
   display.display();
   
   if (value >= upperLimit || value <= lowerLimit)
@@ -150,7 +221,7 @@ void disableAlarm(void) {
    noTone(ALARM_PIN);
 }
 
-void showData(char label[], float value, int decimals, String unit, float upperLimit, float lowerLimit, int rangeLow, int rangeHigh) {
+void showFullScreenData(char label[], float value, int decimals, String unit, float upperLimit, float lowerLimit, int rangeLow, int rangeHigh) {
   int gaugeWidth = 118;
   int gaugeX = 5;
   int gaugeY = 23;
