@@ -1,8 +1,15 @@
 
+
+
+
 /*********************************************************************
 Miata guages
 *********************************************************************/
+// CAN Bus Libraries
+#include <FlexCAN-latest.h>
+#include <kinetis_flexcan.h>
 
+// Display Libraries
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1325.h>
@@ -22,8 +29,8 @@ Adafruit_SSD1325 display(OLED_DC, OLED_RESET, OLED_CS);
 #define LOGO16_GLCD_HEIGHT 16 
 #define LOGO16_GLCD_WIDTH  16 
 
- #include <avr/pgmspace.h> 
-  
+#include <avr/pgmspace.h> 
+ 
 const unsigned char PROGMEM SPLASH_SCREEN [] = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -69,12 +76,24 @@ int NEXT_BTN_PIN = 14;
 int MUTE_BTN_PIN = 15;
 int ALARM_LED_PIN = 16;
 
+float _coolantValue;
+float _airTempValue;
+float _mapValue;
+float _batteryValue;
+float _warmupValue;
+float _rpmValue;
+
 float currentValue = 0;
 boolean inverted = false;
 boolean isMuted = false;
 int cycles = 1;
 int currentScreen = 2;
 int buttonPressedCycle = 0;
+unsigned int caseCan;
+
+// CANBus
+FlexCAN CANbus(500000);
+static CAN_message_t rxmsg;
 
 void setup()   {                
   Serial.begin(9600);
@@ -100,10 +119,14 @@ void setup()   {
   display.drawBitmap(0, 13, SPLASH_SCREEN, 128, 36, WHITE);
   display.display();
   delay(3000);
+  
+  // start can bus
+  CANbus.begin();
 }
 
 void loop() {
   //Get Data
+  readMegasquirtValues();
 
   //Show Data
   display.clearDisplay();
@@ -117,6 +140,31 @@ void loop() {
   CheckForButtonPresses();
   
   cycles++;
+}
+
+int readMegasquirtValues() {
+  if (CANbus.read(rxmsg)) {
+    switch(rxmsg.id)
+    {
+      case 1510:
+        _rpmValue = (float)(word(rxmsg.buf[6], rxmsg.buf[7]));
+        break;
+      case 1512:
+        _mapValue = (float)(word(rxmsg.buf[2], rxmsg.buf[3])) / 10.0;
+        _airTempValue = (float)(word(rxmsg.buf[4], rxmsg.buf[5])) / 10.0;
+        _coolantValue = (float)(word(rxmsg.buf[6], rxmsg.buf[7])) / 10.0;
+        break;
+      case 1513:
+        _batteryValue = (float)(word(rxmsg.buf[2], rxmsg.buf[3])) / 10.0; 
+        break;
+      case 1517:
+        _warmupValue = (float)(word(rxmsg.buf[2], rxmsg.buf[3])) / 10.0;
+        break;
+      default:
+        break;  
+    }
+  } 
+   
 }
 
 void drawMuteIcon() {
@@ -191,17 +239,17 @@ void ShowCurrentScreen() {
       showCoolantTemp();
       break;
     case 4:
+      showBatteryVolt();
+      break;
+    case 5:
+      showRPMs();
+      break;
+    case 6:
       showAll();
       break;
     default:
       showBoost(); 
   }
-  
- // currentValue += .1;
-
-//  if (currentValue > 30) {
-//    currentValue = 30;
-//  }
 }
 
 void CheckForButtonPresses() {
@@ -219,7 +267,7 @@ void CheckForButtonPresses() {
        isMuted = !isMuted;
     }
     
-    if (currentScreen > 4)
+    if (currentScreen > 6)
       currentScreen = 0;
   }
 }
@@ -229,19 +277,19 @@ void showAll() {
   
   display.setTextSize(1);
   
-  drawEighth("CLT", 0, 0, 0, 0);
+  drawEighth("CLT", _coolantValue, 0, 0, 0);
   display.drawLine(32, 0, 32, 32, WHITE);
   
-  drawEighth("IAT", 22, 0, 32, 0);
+  drawEighth("IAT", _airTempValue, 0, 32, 0);
   display.drawLine(64, 0, 64, 32, WHITE);
   
   drawEighth("EGT", 1700, 0, 64, 0);
   display.drawLine(96, 0, 96, 32, WHITE);
   
-  drawEighth("AFR", 12.2, 1, 96, 0);
+  drawEighth("AFR", _mapValue, 1, 96, 0);
   display.drawLine(0, 32, 128, 32, WHITE);
      
-  drawBooleanEighth("WUE", false, 0, 32);
+  drawBooleanEighth("WUE", _warmupValue > 0, 0, 32);
   drawBooleanEighth("LC", true, 32, 32);
   drawBooleanEighth("A", true, 64, 32);
 }
@@ -288,9 +336,46 @@ void drawBooleanEighth(String label, boolean value, int startX, int startY) {
   display.print(label);
 }
 
+void showRPMs() {
+  char label[ ] = "RPM";
+  float value = _rpmValue;
+  float upperLimit = 7200;
+  float lowerLimit = 0;
+  int rangeHigh = 7500;
+  int rangeLow = 0;
+  int decimals = 0;
+  String unit = "RPM";
+  
+  showFullScreenData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
+  
+  if (value >= upperLimit || value <= lowerLimit)
+    enableAlarm();
+  else
+    disableAlarm();
+}
+
+void showBatteryVolt() {
+  char label[ ] = "VOLTAGE";
+  float value = _batteryValue;
+  float upperLimit = 16.5;
+  float lowerLimit = 11;
+  int rangeHigh = 18;
+  int rangeLow = 10;
+  int decimals = 1;
+  String unit = "V";
+  
+  showFullScreenData(label, value, decimals, unit, upperLimit, lowerLimit, rangeLow, rangeHigh);
+  
+  if (value >= upperLimit || value <= lowerLimit)
+    enableAlarm();
+  else
+    disableAlarm();
+}
+  
+
 void showBoost() {
   char label[ ] = "BOOST";
-  float value = currentValue;
+  float value = _mapValue;
   float upperLimit = 14.7;
   float lowerLimit = -100;
   int rangeHigh = 25;
@@ -308,7 +393,7 @@ void showBoost() {
 
 void showIntakeTemp() {
   char label[ ] = "INTAKE";
-  float value = currentValue;
+  float value = _airTempValue;
   float upperLimit = 125;
   float lowerLimit = 32;
   int rangeHigh = 150;
@@ -326,7 +411,7 @@ void showIntakeTemp() {
 
 void showCoolantTemp() {
   char label[ ] = "COOLANT";
-  float value = currentValue;
+  float value = _coolantValue;
   float upperLimit = 240;
   float lowerLimit = 10;
   int rangeHigh = 250;
